@@ -12,6 +12,7 @@ install.packages("caTools")
 BiocManager::install("affycoretools")
 BiocManager::install("arrayQualityMetrics")
 install.packages("pheatmap")
+install.packages("tidyverse")
 
 ###conduct array quality metrics to detect and remove outliers
 library(DESeq2)
@@ -20,7 +21,7 @@ library(arrayQualityMetrics)
 library(genefilter)
 library(Biobase)
 #read in counts 
-c
+countData <- read.table("allcounts_Harvey_fav.txt")
 head(countData)
 length(countData[,1])
 names(countData)=c("fav_recoveryA",	"fav_recoveryB", "fav_recoveryC","fav_stressA", "fav_stressB", "fav_stressC")
@@ -81,7 +82,7 @@ g = data.frame(cbind(treat, replicate))
 g
 colData<- g
 
-dds<-DESeqDataSetFromMatrix(countData=countData, colData=colData, design=~treat+genotype) #can only test for the main effects of site, pco2, temp
+dds<-DESeqDataSetFromMatrix(countData=countData, colData=colData, design=~treat+replicate) #can only test for the main effects of site, pco2, temp
 
 #one step DESeq
 dds<-DESeq(dds)
@@ -187,68 +188,15 @@ heatmap.2(as.matrix(sampleDists), key=F, trace="none",
 
 
 
-#################################################################################
-# VENN Diagram to include both up and down regulated genes in common for PC02
-library(VennDiagram)
-
-stress_up=row.names(resstress[resstress$padj<0.1 & !is.na(resstress$padj) & resstress$log2FoldChange>0,])
-length(p76_up) #66
-p76_down=row.names(resstress[resstress$padj<0.1 & !is.na(resstress$padj) & resstress$log2FoldChange<0,])
-length(p76_down) #420
-p75_up=row.names(resph75[resph75$padj<0.1 & !is.na(resph75$padj) & resph75$log2FoldChange>0,])
-length(p75_up) #38
-p75_down=row.names(resph75[resph75$padj<0.1 & !is.na(resph75$padj) & resph75$log2FoldChange<0,])
-length(p75_down) #80
-
-p76=row.names(resstress[resstress$padj<0.1 & !is.na(resstress$padj),])
-p75=row.names(resph75[resph75$padj<0.1 & !is.na(resph75$padj),])
-
-#UP
-pdegs05_up=union(p76_up,p75_up)
-length(pdegs05_up)
-#93
-
-#DOWN
-pdegs05_down=union(p76_down,p75_down)
-length(pdegs05_down)
-#432
-
-#ALL
-pdegs05=union(p76,p75)
-length(pdegs05)
-#524
-
-###do UP, DOWN, ALL
-candidates=list("7.6"=p76, "7.5"=p75)
-quartz()
-prettyvenn=venn.diagram(
-  x = candidates,
-  filename=NULL,
-  col = "transparent",
-  fill = c("coral2", "forestgreen"),
-  alpha = 0.5,
-  # label.col = c("darkred", "white", "darkgreen", "white", "white", "white", "blue4"),
-  cex = 2.5,
-  fontfamily = "sans",
-  fontface = "bold",
-  cat.default.pos = "text",
-  cat.col = c("darkred", "darkgreen"),
-  cat.cex = 2.5,
-  cat.fontfamily = "sans",
-  cat.dist = c(0.08, 0.08),
-  cat.pos = 1
-);
-grid.draw(prettyvenn)
-
 ###########################heat map of sample distances for pco2
-rldpvals <- read.csv(file="Crep2016_RLDandPVALS.csv", row.names=1)
+rldpvals <- read.csv(file="stress_RLDandPVALS.csv", row.names=1)
 head(rldpvals)
-rld=rldpvals[,1:9]
+rld=rldpvals[,1:8]
 head(rld)
 
 sampleDists <- dist(t(rld))
 sampleDistMatrix <- as.matrix( sampleDists )
-treat=c( "pH7.5", "pH7.5", "pH7.5", "pH7.6", "pH7.6", "pH7.6", "pH8", "pH8",  "pH8")
+treat=c( "fav_recovery", "fav_recovery", "fav_recovery", "fav_stress", "fav_stress", "fav_stress")
 colnames(sampleDistMatrix)=paste(treat)
 rownames(sampleDistMatrix)=paste(treat)
 
