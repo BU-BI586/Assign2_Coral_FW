@@ -112,7 +112,6 @@ summary(resstress)
 
 nrow(resstress[resstress$padj<0.05 & !is.na(resstress$padj),])  # Num significantly differentially expressed genes excluding the no/low count genes   #28
 
-dev.off()
 plotMA(resstress, main="stress vs recovery")
 plotMA(resstress, main="stress vs recovery", ylim=c(-2,2))
 
@@ -209,8 +208,9 @@ library(ggplot2)
 library(ggrepel)
 library(tidyverse)
 
+
 rld_t=t(rld)
-pca <- prcomp(rld_t,center = TRUE, scale. = TRUE)
+pca <- prcomp(rld_t,center = TRUE)
 head(pca)
 li <- pca$sdev^2 / sum(pca$sdev^2)
 pc1v <- round(li[1] * 100, 1)
@@ -234,16 +234,16 @@ ggplot(pca_s, aes(PC1, PC2, color = treat, pch = treat)) +
   ylab(paste0("PC2: ",pc2v,"% variance")) 
 head(pca)
 adonis(pca$x ~ treat, data = pca_s, method='eu', na.rm = TRUE)
-# Df SumsOfSqs MeanSqs F.Model      R2 Pr(>F)   
-# treat      2     40140 20069.9  13.048 0.81306  0.003 **
-# Residuals  6      9229  1538.1         0.18694          
-# Total      8     49369                 1.00000 
+# Df SumsOfSqs MeanSqs F.Model      R2 Pr(>F)
+# treat      1    4491.4  4491.4  1.0698 0.21101    0.3
+# Residuals  4   16793.5  4198.4         0.78899       
+# Total      5   21284.9                 1.00000                        1.00000 
 
 
 ###################################heatmaps for genes NS vs FR
-rldpvals <- read.csv(file="Crep2016_RLDandPVALS.csv", row.names=1)
+rldpvals <- read.csv(file="stress_RLDandPVALS.csv", row.names=1)
 head(rldpvals)
-rld_site= rldpvals[,1:9]
+rld_site = rldpvals[,1:8]
 head(rld_site)
 gg=read.table("Crep454_iso2gene.tab",sep="\t", quote="", row.names=1)
 head(gg)
