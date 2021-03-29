@@ -1,21 +1,150 @@
 ---
 title: "Coral_FW_Gene_Expression"
-author: "Erica Sun"
+author: "Elsa Brenner, Erica Sun, Nick Peoples"
 date: "3/24/2021"
 output: html_document
 ---
 set the working directory
 ```{r}
-
+setwd("~/Documents/GitHub/Assign2_Coral_FW/")
+```
+## Install required packages
+```{r, eval=FALSE}
+BiocManager::install("DESeq2")
+install.packages("backports")
+install.packages("caTools")
+BiocManager::install("affycoretools")
+BiocManager::install("arrayQualityMetrics")
+install.packages("pheatmap")
+install.packages("tidyverse")
 ```
 
+## Conduct array quality metrics to detect and remove outliers
+Load the required packages.
 ```{r}
-countData <- read.table("Crep_counts.txt")
+library(DESeq2)
+library(affycoretools)
+library(arrayQualityMetrics)
+library(genefilter)
+library(Biobase)
+```
+
+### Read in counts. 
+allcounts_Harvey_fav.txt file is from BI586 GitHub. To make a count data .txt, follow the taqseq processing protocol.
+```{r}
+countData <- read.table("allcounts_Harvey_fav.txt")
 head(countData)
 length(countData[,1])
+# set names for countData
+names(countData)=c("fav_recoveryA",	"fav_recoveryB", "fav_recoveryC","fav_stressA", "fav_stressB", "fav_stressC")
 
-names(countData)=c( "pH7.5a", "pH7.5b", "pH7.5c", "pH7.6a", "pH7.6b", "pH7.6c", "pH8a", "pH8b",  "pH8c")
-row.names(countData)=sub("", "isogroup", rownames(countData))
+#row.names(countData)=sub("", "isogroup", rownames(countData)) We don't need to modify the row names
+
 head(countData)
+```
+### Look for outliers
+Set the directory.
+```{r}
+setwd("~/Documents/GitHub/Assign2_Coral_FW/Outlier/")
+v=setwd("~/Documents/GitHub/Assign2_Coral_FW/Outlier/")
+```
+Create a model using DESeq and normalizing the data.
+```{r}
+treat=c("fav_recovery",	"fav_recovery", "fav_recovery","fav_stress", "fav_stress", "fav_stress")
+replicate = c("A", "B", "C", "A", "B", "C")
+g = data.frame(cbind(treat, replicate))
+g
+colData= g
+
+# create a model using DESeq too see how our design is varied by treatment 
+dds=DESeqDataSetFromMatrix(countData=countData,
+                           colData = g,
+                           design = ~treat)
+
+# normalizing the data
+vsd.ge=assay(vst(dds)) 
+rl=vst(dds)
+e=ExpressionSet(assay(rl), AnnotatedDataFrame(as.data.frame(colData(rl))))
+arrayQualityMetrics(e,outdir=v,intgroup=c("treat"),force=T)
+```
+Now we can go over to our Outliers directory and take a look at the index.html file. We didn't detect any outliers, but if there was an outlier you would have to remove them.
+
+## DESeq Analysis
+Since we don't have to run through the outlier chunk of code every time, let's read in counts data again. 
+```{r}
+countData <- read.table("allcounts_Harvey_fav.txt")
+head(countData)
+length(countData[,1])
+names(countData)=c("fav_recoveryA",	"fav_recoveryB", "fav_recoveryC","fav_stressA", "fav_stressB", "fav_stressC")
+head(countData)
+```
+Let's generate a table and visualize the total counts.
+```{r}
+totalCounts=colSums(countData)
+totalCounts
+barplot(totalCounts, col=c("coral", "coral", "coral", "red", "red", "red"), ylab="raw counts", main = "Total Counts of Recovery vs. Stress")
+```
+Looks like the total counts vary a little bit. Let's take a look at the counts in numbers.
+```{r}
+min(totalCounts) #458772
+max(totalCounts)  #6596244
+```
+Create a model using DESeq and normalizing the data.
+```{r}
+treat=c("fav_recovery",	"fav_recovery", "fav_recovery","fav_stress", "fav_stress", "fav_stress")
+replicate = c("A", "B", "C", "A", "B", "C")
+g = data.frame(cbind(treat, replicate))
+g
+colData<- g
+
+dds<-DESeqDataSetFromMatrix(countData=countData, colData=colData, design=~treat+replicate) #can only test for the main effects of site, pco2, temp
+
+#one step DESeq
+dds<-DESeq(dds)
+```
+Let's take a look at our DESeq result. 
+```{r}
+head(dds)
+res<- results(dds)
+```
+Now let's plot the dispersions, which is looking at what DESeq is doing to our data. They do so by fitting our data into this curve.
+```{r}
+plotDispEsts(dds, main="Dispersion plot Corals")
+```
+Dispersion look like a hokey stick, which is good!
+## Pairwise comparasion of stress vs. recovery
+The order matters. Make sure that you put treatment first and control second.
+```{r}
+colData$treat<-factor(colData$treat, levels=c("fav_stress", "fav_recovery"))
+resstress <- results(dds, contrast=c("treat","fav_stress", "fav_recovery"))
+```
+Let's take a look at the number of genes that meet the different thresholds. padj (p-adjusted) takes in account of the comparasions, rather than just looking at one object like p-value. If we're looking at a large amount of gene, it's easy to get a false positive just by chance. We have to do multiple test corrections to get the padj value.
+```{r}
+# number of differentially genes
+#how many FDR < 10%?
+table(resstress$padj<0.1)
+# 0.1=46
+# 0.05=28
+# 0.01=19
+summary(resstress)
+```
+There are 12392 samples removed because of low counts. Only 15 genes are down regulated under stress relative to recovery, and 31 genes are up regulated with the padj < 0.2.
+
+Let's look at numbers of differential express genes that pass a threshold of 0.05.
+```{r}
+nrow(resstress[resstress$padj<0.05 & !is.na(resstress$padj),])
+```
+Now let's make a MA plot and save the result as a dataframe. 
+```{r}
+plotMA(resstress, main="Stress vs Recovery")
+plotMA(resstress, main="Stress vs Recovery", ylim=c(-6,6)) # look at the same plot with differet ylim
+
+results <- as.data.frame(resstress)
+head(results) # somehow isogoup is doubled. Stil not sure how to fix this.
+```
+Get the number of genes that are up/down regulated.
+```{r}
+nrow(resstress[resstress$padj<0.1 & resstress$log2FoldChange > 0 & !is.na(resstress$padj),])
+nrow(resstress[resstress$padj<0.1 & resstress$log2FoldChange < 0 & !is.na(resstress$padj),])
 ```
 
