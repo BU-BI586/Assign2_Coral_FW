@@ -29,7 +29,7 @@ For our DESeq analysis, we used gene expression data originally published with t
 
 In late August, 2017, Hurricane Harvey-- a category 4 hurricane-- traveled over the Gulf of Mexico, and made landfall in coastal Texas, where the storm dumped 33 trillion gallons of freshwater (van Oldenborgh et al., 2017).  Harvey caused significant damage on land, and heavy freshwater input into the Gulf of Mexico off of the Texas coast.  
 
-![satellite animation of Hurricane Harvey over the Texas Coast in August, 2017](/Users/elsa/Desktop/BI_586/Assign2_Coral_FW/hurricane.gif)
+![satellite animation of Hurricane Harvey over the Texas Coast in August, 2017](/Users/ericasun/Documents/GitHub/Assign2_Coral_FW/hurricane.gif)
 
 Flower Garden Banks (FGB) National Marine Sanctuary is located 190kn off the coast of the Texas-Louisiana border, and is one of the few global reef systems that has retained the majority of its coral cover without loss to disease and bleaching. However, with the influx of freshwater from Harvey, it was hypothesized that decreased salinity would lead to a die-off event.
 
@@ -39,7 +39,7 @@ In the case of FGB after Harvey, the freshwater influx led to a period of sub-le
 
 For this study, Wright et. al. sampled two species of *Orbicella*, *Orbicella faveolata* and *Orbicella franksi* from the East and West FBG in September and October 2017.  Using salinity measurements from the Texas Automated Buoy System taken from nearby FGB, samples collected from September were categorized as being under "sub-lethal stress," and samples collected from October were categorized as being in "recovery." A total of 47 tissue samples from the same set of tagged *Orbicella* colonies were collected under both conditions.  After collection, RNA was isolated, amplified, and barcoded and sequenced. Differential gene expression was identified using the DESeq2 in R.  
 
-![*Orbicella faveolata*, one of two *Orbicella* species researched by Wright et al. 2019](/Users/elsa/Desktop/BI_586/Assign2_Coral_FW/Orbicella_fav.jpg)
+![*Orbicella faveolata*, one of two *Orbicella* species researched by Wright et al. 2019](/Users/ericasun/Documents/GitHub/Assign2_Coral_FW/Orbicella_fav.jpg)
 
 For our analysis, we used a subsection of the study's data from the *O. faveolata* samples.  We then ran the DESeq2 and GO enrichment pipelines.  A step-by-step version of our analyses can be found below.  
 
@@ -47,7 +47,7 @@ For our analysis, we used a subsection of the study's data from the *O. faveolat
 
 set the working directory
 ```{r}
-setwd("/Users/elsa/Desktop/BI_586/Assign2_Coral_FW")
+setwd("/Users/ericasun/Documents/GitHub/Assign2_Coral_FW")
 ```
 ### Install required packages
 ```{r, eval=FALSE}
@@ -70,7 +70,7 @@ library(genefilter)
 library(Biobase)
 ```
 
-#### Read in counts. 
+#### Read in counts
 allcounts_Harvey_fav.txt file is from BI586 GitHub. To make a count data .txt, follow the taqseq processing protocol.
 ```{r}
 countData <- read.table("allcounts_Harvey_fav.txt")
@@ -86,8 +86,8 @@ head(countData)
 #### Look for outliers
 Set the directory.
 ```{r}
-setwd("/Users/elsa/Desktop/BI_586/Assign2_Coral_FW")
-v=setwd("/Users/elsa/Desktop/BI_586/Assign2_Coral_FW")
+setwd("/Users/ericasun/Documents/GitHub/Assign2_Coral_FW")
+v=setwd("/Users/ericasun/Documents/GitHub/Assign2_Coral_FW")
 ```
 Create a model using DESeq and normalizing the data.
 ```{r}
