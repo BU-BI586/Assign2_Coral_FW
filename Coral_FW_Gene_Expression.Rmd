@@ -1,14 +1,55 @@
 ---
 title: "Coral_FW_Gene_Expression"
 author: "Elsa Brenner, Erica Sun, Nick Peoples"
-date: "3/24/2021"
+date: "3/30/2021"
 output: html_document
 ---
+## Version Control
+
+```{r}
+R.version
+```
+```{r eval=FALSE}
+packageVersion("DESeq2") #1.30.1
+packageVersion("ggplot2") #3.3.3
+packageVersion("affycoretools") #1.62.0
+packageVersion("arrayQualityMetrics") #3.46.0
+packageVersion("genefilter") #1.72.1
+packageVersion("Biobase") #2.50.0
+packageVersion("dplyr") #1.0.5
+packageVersion("pheatmap") #1.0.12
+packageVersion("vegan") #2.5.7
+packageVersion("ggrepel") #0.9.1
+packageVersion("tidyverse") #1.3.0
+```
+
+## Introduction
+
+For our DESeq analysis, we used gene expression data originally published with the study "Gene expression of endangered coral (*Orbicella* spp.) in Flower Garden Banks National Marine Sanctuary after Hurricane Harvey, published in Frontiers in Marine Science in 2019 by R.M. Wright, A.M.S. Correa, L.A. Quigley, L.Z. Santiago-Vazquez, K.E.F. Shamberger and S.W. Davies.  
+
+In late August, 2017, Hurricane Harvey-- a category 4 hurricane-- traveled over the Gulf of Mexico, and made landfall in coastal Texas, where the storm dumped 33 trillion gallons of freshwater (van Oldenborgh et al., 2017).  Harvey caused significant damage on land, and heavy freshwater input into the Gulf of Mexico off of the Texas coast.  
+
+![satellite animation of Hurricane Harvey over the Texas Coast in August, 2017](/Users/elsa/Desktop/BI_586/Assign2_Coral_FW/hurricane.gif)
+
+Flower Garden Banks (FGB) National Marine Sanctuary is located 190kn off the coast of the Texas-Louisiana border, and is one of the few global reef systems that has retained the majority of its coral cover without loss to disease and bleaching. However, with the influx of freshwater from Harvey, it was hypothesized that decreased salinity would lead to a die-off event.
+
+In the case of FGB after Harvey, the freshwater influx led to a period of sub-lethal stress rather than mortality. This allowed Wright et. al. to investigate differential gene expression in periods of sub-lethal stress and subsequent recovery. 
+
+## Methods
+
+For this study, Wright et. al. sampled two species of *Orbicella*, *Orbicella faveolata* and *Orbicella franksi* from the East and West FBG in September and October 2017.  Using salinity measurements from the Texas Automated Buoy System taken from nearby FGB, samples collected from September were categorized as being under "sub-lethal stress," and samples collected from October were categorized as being in "recovery." A total of 47 tissue samples from the same set of tagged *Orbicella* colonies were collected under both conditions.  After collection, RNA was isolated, amplified, and barcoded and sequenced. Differential gene expression was identified using the DESeq2 in R.  
+
+![*Orbicella faveolata*, one of two *Orbicella* species researched by Wright et al. 2019](/Users/elsa/Desktop/BI_586/Assign2_Coral_FW/Orbicella_fav.jpg)
+
+For our analysis, we used a subsection of the study's data from the *O. faveolata* samples.  We then ran the DESeq2 and GO enrichment pipelines.  A step-by-step version of our analyses can be found below.  
+
+## Step-by-Step Data Analysis
+
 set the working directory
 ```{r}
-setwd("~/Documents/GitHub/Assign2_Coral_FW/")
+setwd("/Users/elsa/Desktop/BI_586/Assign2_Coral_FW")
 ```
-## Install required packages
+### Install required packages
 ```{r, eval=FALSE}
 BiocManager::install("DESeq2")
 install.packages("backports")
@@ -19,7 +60,7 @@ install.packages("pheatmap")
 install.packages("tidyverse")
 ```
 
-## Conduct array quality metrics to detect and remove outliers
+### Conduct array quality metrics to detect and remove outliers
 Load the required packages.
 ```{r}
 library(DESeq2)
@@ -29,7 +70,7 @@ library(genefilter)
 library(Biobase)
 ```
 
-### Read in counts. 
+#### Read in counts. 
 allcounts_Harvey_fav.txt file is from BI586 GitHub. To make a count data .txt, follow the taqseq processing protocol.
 ```{r}
 countData <- read.table("allcounts_Harvey_fav.txt")
@@ -42,11 +83,11 @@ names(countData)=c("fav_recoveryA",	"fav_recoveryB", "fav_recoveryC","fav_stress
 
 head(countData)
 ```
-### Look for outliers
+#### Look for outliers
 Set the directory.
 ```{r}
-setwd("~/Documents/GitHub/Assign2_Coral_FW/Outlier/")
-v=setwd("~/Documents/GitHub/Assign2_Coral_FW/Outlier/")
+setwd("/Users/elsa/Desktop/BI_586/Assign2_Coral_FW")
+v=setwd("/Users/elsa/Desktop/BI_586/Assign2_Coral_FW")
 ```
 Create a model using DESeq and normalizing the data.
 ```{r}
@@ -69,7 +110,7 @@ arrayQualityMetrics(e,outdir=v,intgroup=c("treat"),force=T)
 ```
 Now we can go over to our Outliers directory and take a look at the index.html file. We didn't detect any outliers, but if there was an outlier you would have to remove them.
 
-## DESeq Analysis
+### DESeq Analysis
 Since we don't have to run through the outlier chunk of code every time, let's read in counts data again. 
 ```{r}
 countData <- read.table("allcounts_Harvey_fav.txt")
@@ -112,7 +153,7 @@ Now let's plot the dispersions, which is looking at what DESeq is doing to our d
 plotDispEsts(dds, main="Dispersion plot Corals")
 ```
 Dispersion look like a hokey stick, which is good!
-## Pairwise comparasion of stress vs. recovery
+### Pairwise comparasion of stress vs. recovery
 The order matters. Make sure that you put treatment first and control second.
 ```{r}
 colData$treat<-factor(colData$treat, levels=c("fav_stress", "fav_recovery"))
@@ -130,7 +171,7 @@ summary(resstress)
 ```
 There are 12392 samples removed because of low counts. Only 15 genes are down regulated under stress relative to recovery, and 31 genes are up regulated with the padj < 0.2.
 
-Let's look at numbers of differential express genes that pass a threshold of 0.05.
+Let's look at numbers of differential express genes that pass a threshold of 0.05. We find 28
 ```{r}
 nrow(resstress[resstress$padj<0.05 & !is.na(resstress$padj),])
 ```
@@ -142,9 +183,162 @@ plotMA(resstress, main="Stress vs Recovery", ylim=c(-6,6)) # look at the same pl
 results <- as.data.frame(resstress)
 head(results) # somehow isogoup is doubled. Stil not sure how to fix this.
 ```
-Get the number of genes that are up/down regulated.
+Get the number of genes that are up/down regulated. We find 31 up and 15 down
 ```{r}
 nrow(resstress[resstress$padj<0.1 & resstress$log2FoldChange > 0 & !is.na(resstress$padj),])
 nrow(resstress[resstress$padj<0.1 & resstress$log2FoldChange < 0 & !is.na(resstress$padj),])
 ```
+Write a table of the results, and save to your directory as a .csv file
+```{r}
+write.table(resstress, file="stress_Harvey.txt", quote=F, sep="\t")
 
+cd <- read.table("stress_Harvey.txt")
+head(cd)
+```
+
+## Make GO table for MWU
+The following chunk creates a .csv file of the GO table for MWU (later)
+```{r eval=FALSE}
+library(dplyr)
+cd
+go_input_stress = cd %>%
+  tibble::rownames_to_column(var = "iso") %>%
+  mutate(mutated_p = -log(pvalue)) %>%
+  mutate(mutated_p_updown = ifelse(log2FoldChange < 0, mutated_p*-1, mutated_p*1)) %>%
+  na.omit() %>%
+  select(iso, mutated_p_updown)
+head(go_input_stress)
+colnames(go_input_stress) <- c("gene", "pval")
+head(go_input_stress)
+write.csv(go_input_stress, file="stress_GO.csv", quote=F, row.names=FALSE)
+```
+
+This next chunk gets the p values and creates a table of the rlogdata and p values
+```{r}
+valstress=cbind(resstress$pvalue, resstress$padj)
+colnames(valstress)=c("pval.stress", "padj.stress")
+length(valstress[,1])
+table(complete.cases(valstress))
+
+rlog=rlogTransformation(dds, blind=TRUE) 
+rld=assay(rlog)
+colnames(rld)=paste(colData$treat)
+length(rld[,1])
+
+rldpvals=cbind(rld,valstress)
+dim(rldpvals)
+# [1] 19937    8
+table(complete.cases(rldpvals))
+#FALSE  TRUE 
+#15353  4584 
+
+write.csv(rldpvals, "fav_Harvey_RLDandPVALS.csv", quote=F)
+
+colnames(rld)=paste(colData$treat)
+```
+
+This chunk creates an improved sample distance heatmap of overall gene expression differences between the stress and recovery groups
+```{r}
+rldpvals <- read.csv(file="fav_Harvey_RLDandPVALS.csv", row.names=1)
+head(rldpvals)
+
+rld=rldpvals[,1:6]
+head(rld)
+
+sampleDists <- dist(t(rld))
+sampleDistMatrix <- as.matrix( sampleDists )
+treat=c( "fav_recoveryA", "fav_recoveryB", "fav_recoveryC", "fav_stressA", "fav_stressB", "fav_stressC")
+colnames(sampleDistMatrix)=paste(treat)
+rownames(sampleDistMatrix)=paste(treat)
+
+library("pheatmap")
+heat.colors = colorRampPalette(rev(c("blue","yellow","red")),bias=0.3)(100)
+pheatmap(sampleDistMatrix,color = heat.colors,cex=0.9,border_color=NA,cluster_rows=T,cluster_cols=T, main="Gene Expression Difference Between Stress vs Recovery")
+```
+
+Conduct principal component analysis and create PCA biplot to show variation in gene expression
+```{r}
+library(vegan)
+library(ggplot2)
+library(ggrepel)
+library(tidyverse)
+
+rld_t=t(rld)
+pca <- prcomp(rld_t,center = TRUE, scale = FALSE)
+li <- pca$sdev^2 / sum(pca$sdev^2)
+pc1v <- round(li[1] * 100, 1)
+pc2v <- round(li[2] * 100, 1)
+pca_s <- as.data.frame(pca$x)
+pca_s <- pca_s[,c(1,2)]
+pca_s$Samples = row.names(pca_s)
+pca_s$treat=colData$treat
+
+cbPalette <- c("darkgoldenrod2",  "darkolivegreen3", "dodgerblue3")
+ggplot(pca_s, aes(PC1, PC2, color = treat, pch = treat)) +
+  geom_point(size=3) +
+  #  geom_text_repel(aes(label=Samples)) +
+  scale_colour_manual(values=cbPalette)+
+  theme_bw() +
+  # geom_density2d(alpha=.5)+
+  geom_polygon(alpha=.2)+
+  xlab(paste0("PC1: ",pc1v,"% variance")) +
+  ylab(paste0("PC2: ",pc2v,"% variance")) + ggtitle("PCA Gene Expression Stress vs Recovery")
+```
+
+Test if the groupings differ significantly by their PC scores on the PC1 and PC2 axis. Adonis is better in this case than ANOVA/MANOVA because it uses both the centroids and squared deviation of each sample to that centroid, so that it can detect significant differences when the groups center around each other, but the variance of each group from the centroid is different.
+```{r}
+adonis(pca$x ~ treat, data = pca_s, method='eu', na.rm = TRUE) #No significance detected, p=0.3
+```
+
+Create a heatmap of genes differentially expressed between the recovery and treatment groups
+```{r}
+rldpvals <- read.csv(file="fav_Harvey_RLDandPVALS.csv", row.names=1)
+head(rldpvals)
+rld_site= rldpvals[,1:6]
+head(rld_site)
+gg=read.table("orb_fav_iso2gene.tab.txt",sep="\t", row.names=1)
+head(gg)
+
+nrow(rldpvals[rldpvals$padj.stress<0.01& !is.na(rldpvals$padj.stress),])
+
+topnum= 100 # number of DEGS
+head(rldpvals)
+top100=head(rldpvals[order(rldpvals$padj.stress), ],topnum)
+head(top100)
+length(top100[,1])
+summary(top100)
+
+library(pheatmap)
+head(top100)
+p.val=0.1 # FDR cutoff
+conds=top100[top100$padj.stress<=p.val & !is.na(top100$padj.stress),]
+length(conds[,1])
+
+exp=conds[,1:6] # change numbers to be your vsd data columns
+means=apply(exp,1,mean) # means of rows
+explc=exp-means # subtracting them
+head(explc)
+
+ccol=colorRampPalette(rev(c("red","chocolate1","#FEE090","grey10", "cyan3","cyan")))(100)
+col0=colorRampPalette(rev(c("chocolate1","#FEE090","grey10", "cyan3","cyan")))(100)
+
+pheatmap(explc,cluster_cols=T,scale="row",color=col0, show_rownames = F, main = "Gene Expression of Stress vs. Recovery")
+```
+
+## Conclusion
+
+Our DESeq2 and GO analysis do not match the results found by Wright et al. This is primarily due to the fact that early in our analysis we incorrectly split our data by treatments rather than by genotypes.  We were instructed to continue with our analysis, but anticipate that if we were to rerun DESeq2 and GO we would find similar results to those in the paper.  
+
+Wright et al. found that the sub-lethal stress caused by the influx of freshwater from Harvey impacted the redox state and mitochondrial function of *Orbicella* and their associated algal symbionts.  Previous studies show that extended periods of stress leads to increased risk of mortality, and given the increasing frequency of large storm systems in the Gulf of Mexico, it is very likely that coral in the FGB will continue to experience longer periods of stress.  
+
+This study was somewhat limited by only having two sampling periods-- future research is needed to determine seasonal variation in gene expression.  
+
+## References
+
+Coralpedia - Your guide to Caribbean corals and sponges. (2021). Retrieved March 29, 2021, from [https://coralpedia.bio.warwick.ac.uk/en/corals/montastraea_faveolata](https://coralpedia.bio.warwick.ac.uk/en/corals/montastraea_faveolata))
+
+US Department of Commerce, N. (2020, July 13). Hurricane Harvey Info. Retrieved March 29, 2021, from [https://www.weather.gov/hgx/hurricaneharvey](https://www.weather.gov/hgx/hurricaneharvey)
+
+van Oldenborgh, G. J., van der Wiel, K., Sebastian, A., Singh, R., Arrighi, J., Otto, F., et al. (2017). Attribution of extreme rainfall from Hurricane Harvey, August 2017. *Environ. Res. Lett.* 12:124009. [doi: 10.1088/1748-9326/aa9ef2](https://iopscience.iop.org/article/10.1088/1748-9326/aa9ef2)
+
+Wright, R.M., Correa, M.S., Quigley, L.A., Santiago-Vazquez, L.Z., Shamberger, K.E.F., and Davies, S.W. (2019). Gene expression of endangered coral (*Orbicella* spp.) in Flower Garden Banks National Marine Sanctuary after hurricane Harvey. *Frontiers in Marine Science* 6:672. [https://doi.org/10.3389/fmars.2019.00672](https://www.frontiersin.org/articles/10.3389/fmars.2019.00672/full#B38)
